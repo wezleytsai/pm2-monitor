@@ -1,0 +1,14 @@
+{
+  "name": "pm2-monitor",
+  "version": "0.0.1",
+  "description": "can pm2 just give me some data!?",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Wesley Tsai",
+  "license": "ISC",
+  "dependencies": {
+    "pm-express": "^0.1.0"
+  }
+}
