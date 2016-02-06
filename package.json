@@ -18,7 +18,10 @@
         "pm2": "^1.0.0"
     },
     "server": {
-        "name": "monitor",
+        "name": "sample",
         "port": 3000
+    },
+    "monitor": {
+        "port": 4000
     }
 }

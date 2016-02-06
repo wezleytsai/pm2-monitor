@@ -3,7 +3,8 @@ import url from 'url';
 import pm2 from 'pm2';
 import promisify from '../util/promisify';
 
-const PORT = process.env.PORT || 9000,
+const pkg = require('../package.json'),
+    PORT = pkg.monitor.port || 9000,
     pm3 = {
         connect: promisify(pm2.connect).bind(pm2),
         list: promisify(pm2.list).bind(pm2),

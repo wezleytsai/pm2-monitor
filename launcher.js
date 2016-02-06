@@ -9,7 +9,7 @@ const pkg = require(path.resolve(__dirname, 'package.json')),
         script: 'src/index.js',
         exec_mode: 'cluster',
         instances: 0,
-        name: pkg.name,
+        name: pkg.server.name,
         watch: true
     },
     monitor = {
