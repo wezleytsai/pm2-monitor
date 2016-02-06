@@ -71,7 +71,8 @@ const server = http.createServer(function(req, res) {
                         {
                             topic: 'process:msg',
                             data: { some: 'data' }
-                        }));
+                        })
+                    );
                 }
 
                 return Promise.all(sending);
