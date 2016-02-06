@@ -26,6 +26,8 @@ const server = http.createServer(function(req, res) {
     path = url.parse(req.url).pathname;
 
     if (path === '/') {
+        let processList;
+
         const data = {
             processes: [],
             metrics: []
@@ -36,6 +38,10 @@ const server = http.createServer(function(req, res) {
                 return pm3.list();
             })
             .then(function(list) {
+                processList = list.filter(function(p) {
+                    return p.name !== 'monitor';
+                });
+
                 for (let process of list) {
                     let { pid, name, monit } = process;
                     data.processes.push({
@@ -49,25 +55,33 @@ const server = http.createServer(function(req, res) {
                 return pm3.launchBus();
             })
             .then(function(bus) {
+                let sending = [];
+
                 bus.on('process:msg', function(result) {
-                    data.received = result;
-
-                    res.statusCode = 200;
-                    res.write(JSON.stringify(data));
-                    res.end();
+                    if (data.metrics.push(result) >= processList.length) {
+                        res.statusCode = 200;
+                        res.write(JSON.stringify(data));
+                        res.end();
+                    }
                 });
 
-                return pm3.sendDataToProcessId(0, {
-                    topic: 'process:msg',
-                    data: { some: 'data' }
-                });
+                for (let process of processList) {
+                    sending.push(pm3.sendDataToProcessId(
+                        process.pm_id,
+                        {
+                            topic: 'process:msg',
+                            data: { some: 'data' }
+                        }));
+                }
+
+                return Promise.all(sending);
             })
             .then(function(result) {
                 data.result = result;
             })
             .catch(function(err) {
                 res.statusCode = 500;
-                res.write(JSON.stringify({ error: '500' }));
+                res.write(JSON.stringify({ error: err }));
                 res.end();
             });
 
