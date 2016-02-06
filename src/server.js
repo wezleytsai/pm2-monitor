@@ -15,7 +15,6 @@ app.use((req, res) => {
 process.on('message', function(msg) {
     process.send({
         type: 'process:msg',
-        topic: 'process:msg',
         data: {
             hello: msg
         }
