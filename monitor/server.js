@@ -3,7 +3,13 @@ import url from 'url';
 import pm2 from 'pm2';
 import promisify from '../util/promisify';
 
-const PORT = 9000;
+const PORT = process.env.PORT || 9000,
+    pm3 = {
+        connect: promisify(pm2.connect).bind(pm2),
+        list: promisify(pm2.list).bind(pm2),
+        launchBus: promisify(pm2.launchBus).bind(pm2),
+        sendDataToProcessId: promisify(pm2.sendDataToProcessId).bind(pm2)
+    };
 
 const server = http.createServer(function(req, res) {
     let path;
@@ -19,59 +25,51 @@ const server = http.createServer(function(req, res) {
     path = url.parse(req.url).pathname;
 
     if (path === '/') {
-        res.statusCode = 200;
+        const data = {
+            processes: [],
+            metrics: []
+        };
 
-        pm2.connect(function(err) {
-            pm2.list(function(err, processList) {
-                let i, process;
-
-                const data = {
-                    processes: [],
-                    metrics: []
-                };
-
-                for (i = 0; i < processList.length; i++) {
-                    let {
-                        pid,
-                        name,
-                        monit
-                    } = processList[i];
-
+        pm3.connect()
+            .then(function() {
+                return pm3.list();
+            })
+            .then(function(list) {
+                for (let process of list) {
+                    let { pid, name, monit } = process;
                     data.processes.push({
-                        id: processList[i].pm_id,
+                        id: process.pm_id,
                         pid,
                         name,
                         monit
                     });
                 }
 
-                pm2.launchBus(function(err, bus) {
-                    if (err) {
-                        console.log(err);
-                    }
+                return pm3.launchBus();
+            })
+            .then(function(bus) {
+                bus.on('process:msg', function(result) {
+                    data.received = result;
 
-                    bus.on('process:msg', function(result) {
-                        data.received = result;
-
-                        res.write(JSON.stringify(data));
-                        res.end();
-                    });
-
-                    pm2.sendDataToProcessId(
-                        processList[0].pm_id,
-                        {
-                            topic: 'process:msg',
-                            data: {
-                                some: 'data'
-                            }
-                        }, 
-                        function(err, result) {
-                            data.result = err || result;
-                        }
-                    );
+                    res.statusCode = 200;
+                    res.write(JSON.stringify(data));
+                    res.end();
                 });
+
+                return pm3.sendDataToProcessId(0, {
+                    topic: 'process:msg',
+                    data: { some: 'data' }
+                });
+            })
+            .then(function(result) {
+                data.result = result;
+            })
+            .catch(function(err) {
+                res.statusCode = 500;
+                res.write(JSON.stringify({ error: '500' }));
+                res.end();
             });
-        });
+
     } else {
         res.statusCode = 404;
         res.write(JSON.stringify({ error: '404' }));
