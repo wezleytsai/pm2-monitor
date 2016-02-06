@@ -7,13 +7,9 @@ app.get('/', function(req, res) {
     res.sendStatus(200);
 });
 
-app.get('/metrics', function(req, res) {
-    res.sendStatus(403);
-});
-
 // catch
 app.use((req, res) => {
-    res.sendStatus(405);
+    res.sendStatus(403);
 });
 
 process.on('message', function(msg) {
