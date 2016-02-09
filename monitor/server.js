@@ -1,16 +1,17 @@
 import http from 'http';
 import url from 'url';
-import pm2 from 'pm2';
-import promisify from '../util/promisify';
+// import pm2 from 'pm2';
+import pm3 from '../util/pm2-as-promised';
+// import promisify from '../util/promisify';
 
 const pkg = require('../package.json'),
-    PORT = pkg.monitor.port || 9000,
-    pm3 = {
-        connect: promisify(pm2.connect).bind(pm2),
-        list: promisify(pm2.list).bind(pm2),
-        launchBus: promisify(pm2.launchBus).bind(pm2),
-        sendDataToProcessId: promisify(pm2.sendDataToProcessId).bind(pm2)
-    };
+    PORT = pkg.monitor.port || 9000;
+    // pm3 = {
+    //     connect: promisify(pm2.connect).bind(pm2),
+    //     list: promisify(pm2.list).bind(pm2),
+    //     launchBus: promisify(pm2.launchBus).bind(pm2),
+    //     sendDataToProcessId: promisify(pm2.sendDataToProcessId).bind(pm2)
+    // };
 
 const server = http.createServer(function(req, res) {
     let path;
@@ -52,6 +53,7 @@ const server = http.createServer(function(req, res) {
                     });
                 }
 
+
                 return pm3.launchBus();
             })
             .then(function(bus) {
@@ -74,6 +76,7 @@ const server = http.createServer(function(req, res) {
                         })
                     );
                 }
+
 
                 return Promise.all(sending);
             })
