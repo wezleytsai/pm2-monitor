@@ -1,2 +1,2 @@
 require('./util/next');
-require('./launcher');
+require('./launcher/launcher');

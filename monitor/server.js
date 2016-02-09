@@ -13,6 +13,9 @@ const pkg = require('../package.json'),
     //     sendDataToProcessId: promisify(pm2.sendDataToProcessId).bind(pm2)
     // };
 
+// let processList;
+let i = 0;
+
 const server = http.createServer(function(req, res) {
     let path;
 
@@ -27,17 +30,26 @@ const server = http.createServer(function(req, res) {
     path = url.parse(req.url).pathname;
 
     if (path === '/') {
+        // data.processes = [];
+        // data.metrics = [];
         let processList;
 
         const data = {
+            idx: i++,
             processes: [],
             metrics: []
         };
 
-        pm3.connect()
-            .then(function() {
-                return pm3.list();
-            })
+        // res.statusCode = 200;
+        // res.write(JSON.stringify(data));
+        // res.end();
+        // return;
+
+        pm3.list()
+        // pm3.connect()
+        //     .then(function() {
+        //         return pm3.list();
+        //     })
             .then(function(list) {
                 processList = list.filter(function(p) {
                     return p.name !== 'monitor';
@@ -53,19 +65,30 @@ const server = http.createServer(function(req, res) {
                     });
                 }
 
-
                 return pm3.launchBus();
             })
             .then(function(bus) {
                 let sending = [];
 
+                // bus.on('process:msg', function(result) {
+                //     if (data.metrics.push(result) >= processList.length) {
+                //         res.statusCode = 200;
+                //         res.write(JSON.stringify(data));
+                //         res.end();
+                //     }
+                // });
+
                 bus.on('process:msg', function(result) {
-                    if (data.metrics.push(result) >= processList.length) {
-                        res.statusCode = 200;
-                        res.write(JSON.stringify(data));
-                        res.end();
-                    }
+                    data.metrics.push(result);
+
+                    // if (data.metrics.length >= processList.length) {
+                    //     res.statusCode = 200;
+                    //     res.write(JSON.stringify(data));
+                    //     res.end();
+                    // }
                 });
+
+                // data.metrics = [];
 
                 for (let process of processList) {
                     sending.push(pm3.sendDataToProcessId(
@@ -77,12 +100,29 @@ const server = http.createServer(function(req, res) {
                     );
                 }
 
-
                 return Promise.all(sending);
             })
-            .then(function(result) {
-                data.result = result;
+            .then(function() {
+                let check = new Promise(function(resolve, reject) {
+                    setTimeout(function() {
+                        data.length = processList.length;
+
+                        // if (data.metrics.length >= processList.length) {
+                            res.statusCode = 200;
+                            res.write(JSON.stringify(data));
+                            res.end();
+                            resolve();
+                        // } else {
+                            // reject();
+                        // }
+                    }, 10);
+                });
+
+                return check;
             })
+            // .then(function(result) {
+            //     data.result = result;
+            // })
             .catch(function(err) {
                 res.statusCode = 500;
                 res.write(JSON.stringify({ error: err }));
@@ -96,10 +136,20 @@ const server = http.createServer(function(req, res) {
     }
 });
 
-server.listen(PORT, function(err) {
-    if (err) {
-        console.log(err);
-    }
+pm3.connect()
+    .then(function() {
+    //     return pm3.launchBus();
+    // })
+    // .then(function(bus) {
+        // bus.on('process:msg', function(result) {
+        //     data.metrics.push(result);
+        // });
 
-    console.log('monitor listening on port ' + PORT);
-});
+        server.listen(PORT, function(err) {
+            if (err) {
+                console.log(err);
+            }
+
+            console.log('monitor listening on port ' + PORT);
+        });
+    });
